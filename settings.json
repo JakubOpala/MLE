@@ -1,0 +1,28 @@
+{
+    "general": {
+        "random_state": 42,
+        "status": "test",
+        "datetime_format": "%d/%m.$Y_%H:%M",
+        "data_dir": "data",
+        "models_dir": "models",
+        "results_dir": "results"
+    },
+
+    "train": {
+        "table_name": "iris_training_data.csv",
+        "data_sample": 50,
+        "test_size": 0.2,
+        "architectures": [ [4,16,16,3], [4,8,16,8,3], [4,32,16,8,3] ],
+        "regularizations": ["batch_normalization","dropout"],
+        "dropout_rates": [0.1,0.2,0.4],
+        "learning_rates": [0.005,0.01,0.05],
+        "batch_sizes": [16,32,64],
+        "activations": ["relu","tanh"],
+        "initialization": ["he", "xavier"]
+    },
+
+    "test": {
+        "inp_table_name": "iris_inference_data",
+        "model_name": "model.pickle"
+    }
+}
