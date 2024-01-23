@@ -2,7 +2,7 @@
     "general": {
         "random_state": 42,
         "status": "test",
-        "datetime_format": "%d/%m.$Y_%H:%M",
+        "datetime_format": "%d.%m.%y_%H.%M",
         "data_dir": "data",
         "models_dir": "models",
         "results_dir": "results"
@@ -22,7 +22,7 @@
     },
 
     "test": {
-        "inp_table_name": "iris_inference_data",
-        "model_name": "model.pickle"
+        "inp_table_name": "iris_inference_data.csv",
+        "model_name": "model.pth"
     }
 }

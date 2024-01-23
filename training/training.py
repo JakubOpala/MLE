@@ -6,6 +6,7 @@ import argparse
 import os
 import sys
 import pickle
+import joblib
 import json
 import logging
 import pandas as pd
@@ -15,7 +16,9 @@ from datetime import datetime
 import itertools
 import copy
 
-from sklearn.preprocessing import StandardScaler
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.model_selection import train_test_split
 
 import mlflow
@@ -56,8 +59,36 @@ class DataProcessor():
         logging.info("Preparing data for training...")
         df = self.data_extraction(TRAIN_PATH)
         df = self.data_rand_sampling(df, max_rows)
+        df = self.scaling(df)
+        df = self.one_hot_encoding(df)
+
         return df
     
+    def scaling(self,df):
+        X = df.iloc[:, :-1] 
+        scaler = StandardScaler()
+        features_columns = X.columns
+        X_scaled = scaler.fit_transform(X[features_columns])
+
+        if not os.path.exists(MODEL_DIR):
+            os.makedirs(MODEL_DIR)
+
+        
+        add_path = datetime.now().strftime(conf['general']['datetime_format'])+'.joblib'
+        path = os.path.join(MODEL_DIR, add_path)
+
+        logging.info("Saving scaler...")
+        joblib.dump(scaler, path)
+        X[features_columns] = X_scaled
+        y = df.iloc[:, -1]
+        #logging.info(f"classes {y.unique()}")
+        return pd.concat([X, y], axis=1)
+
+    def one_hot_encoding(self, df, drop_first=False) -> pd.DataFrame:
+        X = df.iloc[:, :-1] 
+        y = pd.get_dummies(df.iloc[:, -1], drop_first=drop_first, dtype=int)
+        return pd.concat([X, y], axis=1)
+
     def data_extraction(self, path: str) -> pd.DataFrame:
         logging.info(f"Loading data from {path}...")
         return pd.read_csv(path)
@@ -80,8 +111,8 @@ class Training():
         self.model = None
         data = self.data_split(df, test_size)
         self.X_train = data[0]
-        self.y_train = data[1]
-        self.X_test = data[2]
+        self.X_test = data[1]
+        self.y_train = data[2]
         self.y_test = data[3]
         #self.build_model(layer_sizes, regularization,activation, dropout_rate)
 
@@ -115,7 +146,7 @@ class Training():
         linear_layer = nn.Linear(layer_sizes[-2], layer_sizes[-1])
         nn.init.xavier_uniform_(linear_layer.weight)
         layers.append(linear_layer)
-        layers.append(nn.Softmax())
+        #layers.append(nn.Softmax(dim=1))
         model = nn.Sequential(*layers)
         return model
 
@@ -132,15 +163,15 @@ class Training():
             model.train()
             total_train_loss = 0.0
             
-            for start in range(0, len(self.X_train), batch_size):
+            for start in range(0, len(self.X_train), batch_size+1):
                 end = min(start + batch_size, len(self.X_train))
                 X_batch = self.X_train[start:end]
                 y_batch = self.y_train[start:end]
-
                 optimizer.zero_grad()
 
                 y_pred = model(X_batch)
-                loss = loss_fn(y_pred, y_batch)
+                target = torch.argmax(y_batch, dim=1)
+                loss = loss_fn(y_pred, target)
         
                 loss.backward()
                 optimizer.step()
@@ -152,7 +183,8 @@ class Training():
             history_train.append(average_train_loss)
 
             y_pred = model(self.X_test)
-            val_loss = loss_fn(y_pred, self.y_test)
+            target = torch.argmax(self.y_test, dim=1)
+            val_loss = loss_fn(y_pred, target)
             val_loss = float(val_loss)
             history_val.append(val_loss)
 
@@ -236,35 +268,30 @@ class Training():
         else:
             path = os.path.join(MODEL_DIR, path)
 
-        torch.save(model.state_dict(), path)
+        torch.save(model, path)
 
     def data_split(self, df: pd.DataFrame, test_size: float = 0.2) -> tuple:
         logging.info("Splitting data into training and test sets...")
-        X_train, X_test, y_train, y_test = train_test_split(df[['x1','x2']], df['y'], 
+        X_train, X_test, y_train, y_test = train_test_split(df.iloc[:, :-3], df.iloc[:, -3:] , 
                                                             test_size=test_size, 
                                 random_state=conf['general']['random_state'])
         
-        X_train = torch.tensor(X_train, dtype=torch.float32)
-        X_test = torch.tensor(X_test, dtype=torch.float32)
-        y_train = torch.tensor(y_train.values, dtype=torch.float32).reshape(-1,1)
-        y_test = torch.tensor(y_test.values, dtype=torch.float32).reshape(-1,1)
-
+        X_train = torch.tensor(X_train.values, dtype=torch.float32)
+        X_test = torch.tensor(X_test.values, dtype=torch.float32)
+        y_train = torch.tensor(y_train.values, dtype=torch.float32).reshape(-1,3)
+        y_test = torch.tensor(y_test.values, dtype=torch.float32).reshape(-1,3)
+        #logging.info(f"shapes: {X_train.shape}, {X_test.shape}, {y_train.shape}, {y_test.shape}")
         return X_train, X_test, y_train, y_test
     
 
-
-
-
-
 if __name__ == "__main__":
     
+    configure_logging()
+
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
 
     data_proc = DataProcessor()
-    tr = Training()
-
     df = data_proc.prepare_data()
-    tr.run_training(df, test_size=conf['train']['test_size'])
 
     architectures    = conf['train']['architectures']
     regularizations  = conf['train']['regularizations']
@@ -272,9 +299,13 @@ if __name__ == "__main__":
     dropout_rates    = conf['train']['dropout_rates']
     learning_rates   = conf['train']['learning_rates']
     batch_sizes      = conf['train']['batch_sizes']
+
+    tr = Training(df, test_size=conf['train']['test_size'])
     
     tr.test_models(device, architectures, regularizations, activations,
                     dropout_rates, learning_rates, batch_sizes, n_epochs=30)
+
+    logging.info("Script completed successfully.")
 
     
     

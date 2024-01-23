@@ -26,7 +26,7 @@ with open(CONF_FILE, "r") as file:
 logger.info("Defining paths...")
 DATA_DIR = get_project_dir(conf['general']['data_dir'])
 TRAIN_PATH = os.path.join(DATA_DIR, conf['train']['table_name'])
-INFERENCE_PATH = os.path.join(DATA_DIR, conf['inference']['inp_table_name'])
+INFERENCE_PATH = os.path.join(DATA_DIR, conf['test']['inp_table_name'])
 
 @singleton
 class Iris_generator():
@@ -39,10 +39,10 @@ class Iris_generator():
         dfs = pd.read_html(url, header=0)
         self.df = dfs[0]
     
-    def train_test_split(self, save_train_path, save_inf_path, test_size=0.2):
-        X = self.df.iloc[:, :-1]  # Features
+    def split(self, save_train_path, save_inf_path, test_size=0.2):
+        X = self.df.iloc[:, 1:-1]  # Features
         y = self.df.iloc[:, -1] 
-        X_train, y_train, X_inference, y_inference = train_test_split(X, y, test_size)
+        X_train, X_inference, y_train, y_inference = train_test_split(X, y, test_size = test_size, random_state=conf['general']['random_state'])
         train_df = pd.concat([X_train, y_train], axis=1)
         inference_df = pd.concat([X_inference, y_inference], axis=1)
         self.save(train_df, save_train_path)
@@ -60,5 +60,5 @@ if __name__ == "__main__":
     logger.info("Starting script...")
     gen = Iris_generator()
     gen.load(url=url)
-    gen.train_test_split(save_train_path=TRAIN_PATH, save_inf_path=INFERENCE_PATH, test_size=conf['train']['test_size'])
+    gen.split(save_train_path=TRAIN_PATH, save_inf_path=INFERENCE_PATH, test_size=float(conf['train']['test_size']))
     logger.info("Script completed successfully.")
