@@ -61,7 +61,7 @@ docker build -f ./training/Dockerfile --build-arg settings_name=settings.json -t
 ```
 - You may run the container with the following parameters to ensure that the trained model is here:
 ```bash
-docker run -it training_image /bin/bash
+docker run -dit training_image
 ```
 Then, move the trained model from the directory inside the Docker container `/app/models` to the local machine using:
 ```bash
@@ -102,5 +102,3 @@ python inference/run.py
 
 Replace `/path_to_your_local_model_directory`, `/path_to_your_input_folder`, and `/path_to_your_output_folder` with actual paths on your local machine or network where your models, input, and output are stored.
 
-## Wrap Up
-This project illustrates a simple, yet effective template to organize an ML project. Following good practices and principles, it ensures a smooth transition from model development to deployment.
