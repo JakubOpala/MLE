@@ -4,7 +4,9 @@ Welcome to my project, a neural network-based classifier designed to work with t
 ### Key Features
 <br>
  - Neural Network Architecture: the neural network architecture designed for the Iris dataset classification task.
+<br>
  - Training Process: steps involved in training the model, including data preprocessing, model configuration, and optimization.
+<br>
  - Model Evaluation: evaluating the model's performance and making predictions on new data.
 
 
@@ -65,9 +67,10 @@ docker run -dit training_image
 ```
 Then, move the trained model from the directory inside the Docker container `/app/models` to the local machine using:
 ```bash
-docker cp <container_id>:/app/models/<model_name>.pickle ./models
+docker cp <container_id>:/app/models/<model_name>.pth ./models
 ```
-Replace `<container_id>` with your running Docker container ID and `<model_name>.pickle` with your model's name.
+Replace `<container_id>` with your running Docker container ID and `<model_name>.pth` with your model's name.
+
 
 1. Alternatively, the `train.py` script can also be run locally as follows:
 
@@ -82,7 +85,7 @@ Once a model has been trained, it can be used to make predictions on new data in
 
 - Build the inference Docker image:
 ```bash
-docker build -f ./inference/Dockerfile --build-arg model_name=<model_name>.pickle --build-arg settings_name=settings.json -t inference_image .
+docker build -f ./inference/Dockerfile --build-arg model_name=<model_name>.pth --build-arg settings_name=settings.json -t inference_image .
 ```
 - Run the inference Docker container:
 ```bash
@@ -100,5 +103,4 @@ After that ensure that you have your results in the `results` directory in your 
 python inference/run.py
 ```
 
-Replace `/path_to_your_local_model_directory`, `/path_to_your_input_folder`, and `/path_to_your_output_folder` with actual paths on your local machine or network where your models, input, and output are stored.
 

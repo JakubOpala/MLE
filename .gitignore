@@ -4,14 +4,16 @@ __pycache__/
 .vscode
 
 # Directories
-data/
+#data/
 models/
 results/
 mlruns/
 
 # File Extensions
-*.csv
+#*.csv
 *.pickle
+*.joblib
+*.pth
 *.pyc
 
 # Environment Variables

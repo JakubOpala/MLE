@@ -1,6 +1,6 @@
 # Dockerfile for training
 # Start from a base Python image
-FROM python:3.11
+FROM python:3.8
 
 # Initialize settings_name variable with the default value
 ARG settings_name=settings.json
